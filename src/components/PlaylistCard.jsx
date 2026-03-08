@@ -107,11 +107,14 @@ export function RecentCard({ item, type = "playlist" }) {
   };
 
   return (
-    <button
-      className="flex items-center gap-3 bg-white/10 hover:bg-white/20 rounded-md overflow-hidden transition-all duration-200 group relative w-full text-left"
+    <div
+      role="button"
+      tabIndex={0}
+      className="flex items-center gap-3 bg-white/10 hover:bg-white/20 rounded-md overflow-hidden transition-all duration-200 group relative w-full text-left cursor-pointer"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={handleClick}
+      onKeyDown={(e) => e.key === "Enter" && handleClick()}
     >
       <div className="w-14 h-14 flex-shrink-0">
         {type === "artist" ? (
@@ -126,7 +129,7 @@ export function RecentCard({ item, type = "playlist" }) {
           <GradientCover gradient={item.gradient} className="w-14 h-14" />
         )}
       </div>
-      <span className="text-white text-sm font-bold truncate pr-2 flex-1">
+      <span className="text-white text-sm font-bold truncate pr-16 flex-1">
         {item.name}
       </span>
       {tracks.length > 0 && (
@@ -145,7 +148,7 @@ export function RecentCard({ item, type = "playlist" }) {
           )}
         </button>
       )}
-    </button>
+    </div>
   );
 }
 

@@ -1,62 +1,70 @@
 /**
  * Deezer API Service
- * - Gratuita, sem API key, CORS aberto
- * - Cache em memória para evitar chamadas repetidas
- * - Proxy via allorigins para evitar qualquer bloqueio CORS
+ * Tenta CORS direto primeiro (Deezer suporta), fallback para corsproxy.io.
+ * Cache em memória + deduplicação de requests em paralelo.
  */
 
-const cache = new Map(); // artistName -> { imageSmall, imageMedium, imageLarge, id }
-const pending = new Map(); // artistName -> Promise (evita chamadas duplicadas em paralelo)
+const cache = new Map(); // key -> data | null
+const pending = new Map(); // key -> Promise
 
-const DEEZER_BASE = "https://api.deezer.com";
+const ENDPOINTS = [
+  // 1. Direto (Deezer tem CORS headers para GET público)
+  (q) =>
+    `https://api.deezer.com/search/artist?q=${encodeURIComponent(q)}&limit=5`,
+  // 2. Fallback: corsproxy.io
+  (q) =>
+    `https://corsproxy.io/?${encodeURIComponent(`https://api.deezer.com/search/artist?q=${q}&limit=5`)}`,
+];
 
-// allorigins proxy para garantir CORS em qualquer ambiente
-function proxyUrl(url) {
-  return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+async function fetchWithFallback(artistName) {
+  for (const endpoint of ENDPOINTS) {
+    try {
+      const res = await fetch(endpoint(artistName), {
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data?.data?.length) return data.data;
+    } catch (err) {
+      // tenta próximo endpoint
+      console.warn(
+        `[Deezer] endpoint falhou (${err.message}), tentando fallback…`,
+      );
+    }
+  }
+  return null;
 }
 
-/**
- * Busca dados de um artista na Deezer API.
- * Retorna { imageSmall, imageMedium, imageLarge, deezerId } ou null.
- */
 export async function fetchArtistFromDeezer(artistName) {
   if (!artistName) return null;
-
   const key = artistName.toLowerCase().trim();
 
-  // Cache hit
   if (cache.has(key)) return cache.get(key);
-
-  // Deduplicate in-flight requests
   if (pending.has(key)) return pending.get(key);
 
   const promise = (async () => {
     try {
-      const searchUrl = `${DEEZER_BASE}/search/artist?q=${encodeURIComponent(artistName)}&limit=5`;
-      const res = await fetch(proxyUrl(searchUrl));
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const results = await fetchWithFallback(artistName);
+      if (!results) {
+        cache.set(key, null);
+        return null;
+      }
 
-      const data = await res.json();
-      if (!data?.data?.length) return null;
-
-      // Pega o resultado com nome mais parecido
       const best =
-        data.data.find((a) => a.name.toLowerCase() === key) || data.data[0];
-
+        results.find((a) => a.name.toLowerCase() === key) || results[0];
       const result = {
         deezerId: best.id,
-        imageSmall: best.picture_small, // 56x56
-        imageMedium: best.picture_medium, // 250x250
-        imageLarge: best.picture_xl || best.picture_big, // 1000x1000 ou 500x500
+        imageSmall: best.picture_small,
+        imageMedium: best.picture_medium,
+        imageLarge: best.picture_xl || best.picture_big,
         name: best.name,
         fans: best.nb_fan,
       };
-
       cache.set(key, result);
       return result;
     } catch (err) {
       console.warn(`[Deezer] Falha ao buscar "${artistName}":`, err.message);
-      cache.set(key, null); // cache negativo para não tentar de novo
+      cache.set(key, null);
       return null;
     } finally {
       pending.delete(key);
@@ -67,36 +75,6 @@ export async function fetchArtistFromDeezer(artistName) {
   return promise;
 }
 
-/**
- * Busca imagens de vários artistas em paralelo (com limite de concorrência).
- */
-export async function fetchArtistsBatch(artistNames, concurrency = 4) {
-  const results = {};
-  const chunks = [];
-
-  for (let i = 0; i < artistNames.length; i += concurrency) {
-    chunks.push(artistNames.slice(i, i + concurrency));
-  }
-
-  for (const chunk of chunks) {
-    const settled = await Promise.allSettled(
-      chunk.map((name) =>
-        fetchArtistFromDeezer(name).then((data) => ({ name, data })),
-      ),
-    );
-    for (const s of settled) {
-      if (s.status === "fulfilled" && s.value.data) {
-        results[s.value.name.toLowerCase()] = s.value.data;
-      }
-    }
-  }
-
-  return results;
-}
-
-/**
- * Retorna URL de imagem do cache (síncrono), ou null se ainda não carregou.
- */
 export function getArtistImageCached(artistName) {
   return cache.get(artistName?.toLowerCase()?.trim()) ?? null;
 }
