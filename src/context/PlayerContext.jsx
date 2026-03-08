@@ -1,79 +1,197 @@
-import { createContext, useContext, useState, useRef, useCallback } from 'react';
-import { mockTracks } from '../data/mockData';
+import {
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+} from "react";
+import {
+  tracks as allTracks,
+  getArtistById,
+  getAlbumById,
+} from "../data/mockData";
 
 const PlayerContext = createContext(null);
 
+function formatTime(secs) {
+  const s = Math.floor(isNaN(secs) ? 0 : secs);
+  return String(Math.floor(s / 60)) + ":" + String(s % 60).padStart(2, "0");
+}
+
 export function PlayerProvider({ children }) {
-  const [currentTrack, setCurrentTrack] = useState(mockTracks[0]);
+  const audioRef = useRef(new Audio());
+  const [currentTrack, setCurrentTrack] = useState(allTracks[0]);
+  const [queue, setQueue] = useState(allTracks);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(32);
-  const [volume, setVolume] = useState(70);
-  const [isShuffle, setIsShuffle] = useState(false);
-  const [repeatMode, setRepeatMode] = useState(0); // 0=off, 1=all, 2=one
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolumeState] = useState(0.7);
   const [isMuted, setIsMuted] = useState(false);
+  const [isShuffle, setIsShuffle] = useState(false);
+  const [repeatMode, setRepeatMode] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
-  const [queue, setQueue] = useState(mockTracks);
-  const intervalRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const skipNextRef = useRef(null);
 
-  const play = useCallback((track) => {
-    if (track) setCurrentTrack(track);
-    setIsPlaying(true);
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => {
-      setProgress(p => {
-        if (p >= 100) {
-          clearInterval(intervalRef.current);
-          setIsPlaying(false);
-          return 0;
-        }
-        return p + 0.1;
-      });
-    }, 100);
+  const enrichedTrack = currentTrack
+    ? {
+        ...currentTrack,
+        artist: getArtistById(currentTrack.artistId),
+        album: getAlbumById(currentTrack.albumId),
+      }
+    : null;
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const onDuration = () =>
+      setDuration(isNaN(audio.duration) ? 0 : audio.duration);
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onWaiting = () => setIsLoading(true);
+    const onCanPlay = () => setIsLoading(false);
+    const onEnded = () => {
+      if (skipNextRef.current) skipNextRef.current();
+    };
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("loadedmetadata", onDuration);
+    audio.addEventListener("durationchange", onDuration);
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("waiting", onWaiting);
+    audio.addEventListener("canplay", onCanPlay);
+    audio.addEventListener("ended", onEnded);
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("loadedmetadata", onDuration);
+      audio.removeEventListener("durationchange", onDuration);
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("waiting", onWaiting);
+      audio.removeEventListener("canplay", onCanPlay);
+      audio.removeEventListener("ended", onEnded);
+    };
   }, []);
 
-  const pause = useCallback(() => {
-    setIsPlaying(false);
-    if (intervalRef.current) clearInterval(intervalRef.current);
+  useEffect(() => {
+    audioRef.current.volume = isMuted ? 0 : volume;
+  }, [volume, isMuted]);
+
+  const loadAndPlay = useCallback((track) => {
+    const audio = audioRef.current;
+    audio.src = track.audioUrl;
+    audio.load();
+    setCurrentTime(0);
+    setDuration(0);
+    audio.play().catch(() => {});
   }, []);
 
+  const play = useCallback(
+    (track) => {
+      if (track) {
+        setCurrentTrack(track);
+        loadAndPlay(track);
+      } else {
+        audioRef.current.play().catch(() => {});
+      }
+    },
+    [loadAndPlay],
+  );
+
+  const pause = useCallback(() => audioRef.current.pause(), []);
   const togglePlay = useCallback(() => {
-    if (isPlaying) pause();
-    else play();
-  }, [isPlaying, play, pause]);
+    if (audioRef.current.paused) audioRef.current.play().catch(() => {});
+    else audioRef.current.pause();
+  }, []);
+
+  const seek = useCallback((time) => {
+    audioRef.current.currentTime = time;
+    setCurrentTime(time);
+  }, []);
 
   const skipNext = useCallback(() => {
-    const idx = queue.findIndex(t => t.id === currentTrack.id);
-    const next = queue[(idx + 1) % queue.length];
-    setCurrentTrack(next);
-    setProgress(0);
-    if (isPlaying) play(next);
-  }, [queue, currentTrack, isPlaying, play]);
+    setQueue((currentQueue) => {
+      setCurrentTrack((currentTrack) => {
+        const idx = currentQueue.findIndex((t) => t.id === currentTrack?.id);
+        const nextIdx = isShuffle
+          ? Math.floor(Math.random() * currentQueue.length)
+          : (idx + 1) % currentQueue.length;
+        const next = currentQueue[nextIdx];
+        loadAndPlay(next);
+        return next;
+      });
+      return currentQueue;
+    });
+  }, [isShuffle, loadAndPlay]);
+
+  skipNextRef.current = skipNext;
 
   const skipPrev = useCallback(() => {
-    if (progress > 5) { setProgress(0); return; }
-    const idx = queue.findIndex(t => t.id === currentTrack.id);
-    const prev = queue[(idx - 1 + queue.length) % queue.length];
-    setCurrentTrack(prev);
-    setProgress(0);
-    if (isPlaying) play(prev);
-  }, [queue, currentTrack, isPlaying, progress, play]);
+    if (currentTime > 3) {
+      seek(0);
+      return;
+    }
+    setQueue((currentQueue) => {
+      setCurrentTrack((currentTrack) => {
+        const idx = currentQueue.findIndex((t) => t.id === currentTrack?.id);
+        const prevIdx = (idx - 1 + currentQueue.length) % currentQueue.length;
+        const prev = currentQueue[prevIdx];
+        loadAndPlay(prev);
+        return prev;
+      });
+      return currentQueue;
+    });
+  }, [currentTime, seek, loadAndPlay]);
 
-  const formatTime = (secs) => {
-    const s = Math.floor(secs);
-    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  };
+  const setVolume = useCallback((v) => {
+    setVolumeState(v);
+    if (v > 0) setIsMuted(false);
+  }, []);
 
-  const currentTime = formatTime((progress / 100) * (currentTrack?.duration || 0));
-  const totalTime = formatTime(currentTrack?.duration || 0);
+  const playQueue = useCallback(
+    (trackList, startTrack) => {
+      setQueue(trackList);
+      const t = startTrack || trackList[0];
+      setCurrentTrack(t);
+      loadAndPlay(t);
+    },
+    [loadAndPlay],
+  );
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <PlayerContext.Provider value={{
-      currentTrack, isPlaying, progress, volume, isShuffle, repeatMode,
-      isMuted, isLiked, queue, currentTime, totalTime,
-      setProgress, setVolume, setIsShuffle, setRepeatMode,
-      setIsMuted, setIsLiked,
-      play, pause, togglePlay, skipNext, skipPrev,
-    }}>
+    <PlayerContext.Provider
+      value={{
+        currentTrack: enrichedTrack,
+        isPlaying,
+        progress,
+        currentTime,
+        duration,
+        volume,
+        isMuted,
+        isShuffle,
+        repeatMode,
+        isLiked,
+        isLoading,
+        queue,
+        currentTimeStr: formatTime(currentTime),
+        totalTimeStr: formatTime(duration),
+        play,
+        pause,
+        togglePlay,
+        seek,
+        skipNext,
+        skipPrev,
+        setVolume,
+        setIsMuted,
+        setIsShuffle,
+        setRepeatMode,
+        setIsLiked,
+        playQueue,
+      }}
+    >
       {children}
     </PlayerContext.Provider>
   );

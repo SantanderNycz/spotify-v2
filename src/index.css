@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -14,13 +14,6 @@
   --spotify-green: #1ed760;
   --spotify-green-dark: #1db954;
   --spotify-black: #121212;
-  --spotify-dark: #181818;
-  --sidebar-width: 240px;
-  --player-height: 90px;
-}
-
-html {
-  font-size: 16px;
 }
 
 body {
@@ -37,7 +30,7 @@ body {
   flex-direction: column;
 }
 
-/* Custom scrollbar */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -53,35 +46,12 @@ body {
   background: #888;
 }
 
-/* Range input (volume/progress) */
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  cursor: pointer;
-  height: 4px;
+/* Progress/volume track */
+.player-range input[type="range"] {
+  display: none;
 }
-input[type="range"]::-webkit-slider-runnable-track {
-  background: #535353;
-  border-radius: 2px;
-  height: 4px;
-}
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  background: #fff;
-  border-radius: 50%;
-  height: 12px;
-  width: 12px;
-  margin-top: -4px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-.player-range:hover input[type="range"]::-webkit-slider-thumb {
-  opacity: 1;
-}
-.player-range:hover input[type="range"]::-webkit-slider-runnable-track {
-  background: var(--spotify-green);
+.player-range {
+  position: relative;
 }
 
 /* Skeleton shimmer */
@@ -99,34 +69,7 @@ input[type="range"]::-webkit-slider-thumb {
   }
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-.animate-slide-up {
-  animation: slideUp 0.3s ease-out;
-}
-
-/* Equalizer bars animation */
+/* Equalizer bars */
 @keyframes eq1 {
   0%,
   100% {
@@ -154,22 +97,39 @@ input[type="range"]::-webkit-slider-thumb {
     height: 16px;
   }
 }
-
 .eq-bar:nth-child(1) {
   animation: eq1 0.8s ease-in-out infinite;
 }
 .eq-bar:nth-child(2) {
-  animation: eq2 0.8s ease-in-out infinite 0.2s;
+  animation: eq2 0.8s ease-in-out infinite 0.15s;
 }
 .eq-bar:nth-child(3) {
-  animation: eq3 0.8s ease-in-out infinite 0.4s;
+  animation: eq3 0.8s ease-in-out infinite 0.3s;
 }
 
-/* Hide scrollbar but keep scroll */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
 }
