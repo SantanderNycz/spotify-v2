@@ -39,7 +39,7 @@ export default function PlaylistCard({
 
   return (
     <div
-      className="bg-[#181818] hover:bg-[#282828] rounded-md p-4 cursor-pointer transition-all duration-200 group relative"
+      className="bg-transparent hover:bg-[#282828] rounded-md p-4 cursor-pointer transition-all duration-500 group relative"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={handleClick}
