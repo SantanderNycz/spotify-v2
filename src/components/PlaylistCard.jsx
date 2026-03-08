@@ -32,21 +32,10 @@ export default function PlaylistCard({
     else navigate("playlist", { playlist: item });
   };
 
-  const Cover = () =>
-    isRound ? (
-      <ArtistImage
-        artistName={item.name}
-        gradient={item.gradient}
-        className="w-full aspect-square"
-        rounded
-        size="medium"
-      />
-    ) : (
-      <GradientCover
-        gradient={item.gradient}
-        className="w-full aspect-square rounded"
-      />
-    );
+  // Artist → foto circular da Deezer
+  // Playlist → capa da Deezer (quadrada)
+  // Outros (mix, categoria) → gradiente puro
+  const hasRealCover = type === "artist" || type === "playlist";
 
   return (
     <div
@@ -58,7 +47,22 @@ export default function PlaylistCard({
       <div
         className={`relative mb-4 shadow-2xl ${isRound ? "rounded-full overflow-hidden" : ""}`}
       >
-        <Cover />
+        {hasRealCover ? (
+          <ArtistImage
+            name={item.name}
+            type={type}
+            gradient={item.gradient}
+            className="w-full aspect-square"
+            rounded={isRound}
+            size="medium"
+          />
+        ) : (
+          <GradientCover
+            gradient={item.gradient}
+            className="w-full aspect-square rounded"
+          />
+        )}
+
         {tracks.length > 0 && (
           <button
             className={`absolute bottom-2 right-2 w-12 h-12 bg-[#1ed760] rounded-full flex items-center justify-center shadow-xl transition-all duration-200 hover:scale-110 hover:bg-[#3be377] ${
@@ -106,6 +110,8 @@ export function RecentCard({ item, type = "playlist" }) {
     else navigate("playlist", { playlist: item });
   };
 
+  const hasRealCover = type === "artist" || type === "playlist";
+
   return (
     <div
       role="button"
@@ -117,12 +123,13 @@ export function RecentCard({ item, type = "playlist" }) {
       onKeyDown={(e) => e.key === "Enter" && handleClick()}
     >
       <div className="w-14 h-14 flex-shrink-0">
-        {type === "artist" ? (
+        {hasRealCover ? (
           <ArtistImage
-            artistName={item.name}
+            name={item.name}
+            type={type}
             gradient={item.gradient}
             className="w-14 h-14"
-            rounded
+            rounded={type === "artist"}
             size="small"
           />
         ) : (

@@ -1,65 +1,96 @@
-import { useState } from 'react';
-import { useArtistImage } from '../hooks/useArtistImage';
-import GradientCover from './GradientCover';
+import { useState, useEffect } from "react";
+import {
+  fetchArtistFromDeezer,
+  fetchPlaylistCover,
+} from "../services/deezerService";
+import GradientCover from "./GradientCover";
 
 /**
- * Componente universal para imagem de artista.
- * - Busca automaticamente na Deezer API
- * - Mostra skeleton enquanto carrega
- * - Faz fade-in suave quando a imagem chega
- * - Cai de volta para o GradientCover se falhar
+ * Componente universal para capas vindas da Deezer.
  *
  * Props:
- *   artistName  - string, nome do artista para buscar
- *   gradient    - array, fallback de gradiente se a imagem falhar
- *   className   - classes Tailwind para o container
- *   rounded     - boolean, true para artistas (círculo), false para álbuns
- *   size        - 'small' | 'medium' | 'large'
+ *   name       - nome do artista ou playlist a pesquisar
+ *   type       - 'artist' | 'playlist' (default: 'artist')
+ *   gradient   - fallback de gradiente
+ *   className  - classes para o container
+ *   rounded    - true → círculo (artistas)
+ *   size       - 'small' | 'medium' | 'large'
  */
 export default function ArtistImage({
+  name,
+  // legacy prop support
   artistName,
+  type = "artist",
   gradient,
-  className = '',
+  className = "",
   rounded = false,
-  size = 'medium',
+  size = "medium",
 }) {
-  const { imageUrl, loading } = useArtistImage(artistName, size);
+  const resolvedName = name || artistName;
+  const [imageUrl, setImageUrl] = useState(null);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [loading, setLoading] = useState(!!resolvedName);
 
-  const shape = rounded ? 'rounded-full' : 'rounded';
+  useEffect(() => {
+    if (!resolvedName) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setImgLoaded(false);
+    setImageUrl(null);
 
-  // Skeleton enquanto a requisição está em voo
+    const fetcher =
+      type === "playlist"
+        ? fetchPlaylistCover(resolvedName)
+        : fetchArtistFromDeezer(resolvedName);
+
+    fetcher.then((data) => {
+      if (cancelled || !data) {
+        setLoading(false);
+        return;
+      }
+      const url =
+        size === "small"
+          ? data.imageSmall
+          : size === "large"
+            ? data.imageLarge
+            : data.imageMedium;
+      setImageUrl(url || null);
+      setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedName, type, size]);
+
+  const shape = rounded ? "rounded-full" : "rounded";
+
   if (loading && !imageUrl) {
-    return (
-      <div className={`skeleton ${shape} ${className}`} />
-    );
+    return <div className={`skeleton ${shape} ${className}`} />;
   }
 
-  // Se temos URL, renderiza a img com fade-in + fallback de gradiente por baixo
   if (imageUrl) {
     return (
       <div className={`relative overflow-hidden ${shape} ${className}`}>
-        {/* Gradiente de fundo (visível até a img carregar) */}
         <GradientCover
           gradient={gradient}
           className={`absolute inset-0 w-full h-full ${shape}`}
           rounded={rounded}
         />
-        {/* Imagem real */}
         <img
           src={imageUrl}
-          alt={artistName}
+          alt={resolvedName}
           onLoad={() => setImgLoaded(true)}
-          className={`absolute inset-0 w-full h-full object-cover ${shape} transition-opacity duration-500 ${
-            imgLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
+          className={`absolute inset-0 w-full h-full object-cover ${shape} transition-opacity duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
           draggable={false}
         />
       </div>
     );
   }
 
-  // Fallback: gradiente puro
   return (
     <GradientCover
       gradient={gradient}
