@@ -2,9 +2,21 @@ import { useState } from "react";
 import { Play, Pause } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 import { useNav } from "../context/NavContext";
-import { getTracksForPlaylist } from "../data/mockData";
+import {
+  getTracksForPlaylist,
+  getTrackById,
+  getArtistById,
+} from "../data/mockData";
 import GradientCover from "./GradientCover";
 import ArtistImage from "./ArtistImage";
+
+// Para playlists, usa a imagem do artista da primeira faixa como capa
+function resolvePlaylistCoverArtist(item) {
+  if (!item.trackIds?.length) return null;
+  const firstTrack = getTrackById(item.trackIds[0]);
+  if (!firstTrack) return null;
+  return getArtistById(firstTrack.artistId)?.name || null;
+}
 
 export default function PlaylistCard({
   item,
@@ -32,10 +44,40 @@ export default function PlaylistCard({
     else navigate("playlist", { playlist: item });
   };
 
-  // Artist → foto circular da Deezer
-  // Playlist → capa da Deezer (quadrada)
-  // Outros (mix, categoria) → gradiente puro
-  const hasRealCover = type === "artist" || type === "playlist";
+  const renderCover = () => {
+    if (type === "artist") {
+      return (
+        <ArtistImage
+          name={item.name}
+          type="artist"
+          gradient={item.gradient}
+          className="w-full aspect-square"
+          rounded
+          size="medium"
+        />
+      );
+    }
+    if (type === "playlist") {
+      const coverArtist = resolvePlaylistCoverArtist(item);
+      if (coverArtist) {
+        return (
+          <ArtistImage
+            name={coverArtist}
+            type="artist"
+            gradient={item.gradient}
+            className="w-full aspect-square rounded"
+            size="medium"
+          />
+        );
+      }
+    }
+    return (
+      <GradientCover
+        gradient={item.gradient}
+        className="w-full aspect-square rounded"
+      />
+    );
+  };
 
   return (
     <div
@@ -47,22 +89,7 @@ export default function PlaylistCard({
       <div
         className={`relative mb-4 shadow-2xl ${isRound ? "rounded-full overflow-hidden" : ""}`}
       >
-        {hasRealCover ? (
-          <ArtistImage
-            name={item.name}
-            type={type}
-            gradient={item.gradient}
-            className="w-full aspect-square"
-            rounded={isRound}
-            size="medium"
-          />
-        ) : (
-          <GradientCover
-            gradient={item.gradient}
-            className="w-full aspect-square rounded"
-          />
-        )}
-
+        {renderCover()}
         {tracks.length > 0 && (
           <button
             className={`absolute bottom-2 right-2 w-12 h-12 bg-[#1ed760] rounded-full flex items-center justify-center shadow-xl transition-all duration-200 hover:scale-110 hover:bg-[#3be377] ${
@@ -110,7 +137,8 @@ export function RecentCard({ item, type = "playlist" }) {
     else navigate("playlist", { playlist: item });
   };
 
-  const hasRealCover = type === "artist" || type === "playlist";
+  const coverArtist =
+    type === "playlist" ? resolvePlaylistCoverArtist(item) : null;
 
   return (
     <div
@@ -122,14 +150,22 @@ export function RecentCard({ item, type = "playlist" }) {
       onClick={handleClick}
       onKeyDown={(e) => e.key === "Enter" && handleClick()}
     >
-      <div className="w-14 h-14 flex-shrink-0">
-        {hasRealCover ? (
+      <div className="w-14 h-14 flex-shrink-0 overflow-hidden">
+        {type === "artist" ? (
           <ArtistImage
             name={item.name}
-            type={type}
+            type="artist"
             gradient={item.gradient}
             className="w-14 h-14"
-            rounded={type === "artist"}
+            rounded
+            size="small"
+          />
+        ) : coverArtist ? (
+          <ArtistImage
+            name={coverArtist}
+            type="artist"
+            gradient={item.gradient}
+            className="w-14 h-14"
             size="small"
           />
         ) : (
