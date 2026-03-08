@@ -4,6 +4,7 @@ import { usePlayer } from "../context/PlayerContext";
 import { useNav } from "../context/NavContext";
 import { getTracksForPlaylist } from "../data/mockData";
 import GradientCover from "./GradientCover";
+import ArtistImage from "./ArtistImage";
 
 export default function PlaylistCard({
   item,
@@ -22,36 +23,42 @@ export default function PlaylistCard({
 
   const handlePlay = (e) => {
     e.stopPropagation();
-    if (isThisPlaying) {
-      togglePlay();
-    } else if (tracks.length > 0) {
-      playQueue(tracks, tracks[0]);
-    }
+    if (isThisPlaying) togglePlay();
+    else if (tracks.length > 0) playQueue(tracks, tracks[0]);
   };
 
   const handleClick = () => {
-    if (type === "artist" || (item.followers === undefined && item.genre)) {
-      navigate("artist", { artist: item });
-    } else {
-      navigate("playlist", { playlist: item });
-    }
+    if (type === "artist") navigate("artist", { artist: item });
+    else navigate("playlist", { playlist: item });
   };
+
+  const Cover = () =>
+    isRound ? (
+      <ArtistImage
+        artistName={item.name}
+        gradient={item.gradient}
+        className="w-full aspect-square"
+        rounded
+        size="medium"
+      />
+    ) : (
+      <GradientCover
+        gradient={item.gradient}
+        className="w-full aspect-square rounded"
+      />
+    );
 
   return (
     <div
-      className="bg-transparent hover:bg-[#282828] rounded-md p-4 cursor-pointer transition-all duration-500 group relative"
+      className="bg-transparent hover:bg-[#282828] rounded-md p-4 cursor-pointer transition-all duration-200 group relative"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={handleClick}
     >
       <div
-        className={`relative mb-4 shadow-2xl ${isRound ? "rounded-full overflow-hidden" : "rounded"}`}
+        className={`relative mb-4 shadow-2xl ${isRound ? "rounded-full overflow-hidden" : ""}`}
       >
-        <GradientCover
-          gradient={item.gradient}
-          className={`w-full aspect-square ${isRound ? "rounded-full" : "rounded"}`}
-          rounded={isRound}
-        />
+        <Cover />
         {tracks.length > 0 && (
           <button
             className={`absolute bottom-2 right-2 w-12 h-12 bg-[#1ed760] rounded-full flex items-center justify-center shadow-xl transition-all duration-200 hover:scale-110 hover:bg-[#3be377] ${
@@ -73,7 +80,7 @@ export default function PlaylistCard({
         {item.name}
       </p>
       <p className="text-[#b3b3b3] text-xs truncate leading-relaxed">
-        {item.description || item.genre || item.type || "Playlist"}
+        {item.description || item.genre || "Playlist"}
       </p>
     </div>
   );
@@ -107,11 +114,17 @@ export function RecentCard({ item, type = "playlist" }) {
       onClick={handleClick}
     >
       <div className="w-14 h-14 flex-shrink-0">
-        <GradientCover
-          gradient={item.gradient}
-          className="w-14 h-14"
-          rounded={type === "artist"}
-        />
+        {type === "artist" ? (
+          <ArtistImage
+            artistName={item.name}
+            gradient={item.gradient}
+            className="w-14 h-14"
+            rounded
+            size="small"
+          />
+        ) : (
+          <GradientCover gradient={item.gradient} className="w-14 h-14" />
+        )}
       </div>
       <span className="text-white text-sm font-bold truncate pr-2 flex-1">
         {item.name}

@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useNav } from "../context/NavContext";
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNav } from '../context/NavContext';
 
 export default function TopBar({ scrolled, gradientColor }) {
   const { goBack, goForward, canGoBack, canGoForward } = useNav();
@@ -8,10 +8,8 @@ export default function TopBar({ scrolled, gradientColor }) {
     <header
       className="flex items-center justify-between px-6 py-4 sticky top-0 z-10 transition-all duration-300"
       style={{
-        backgroundColor: scrolled
-          ? `${gradientColor || "#121212"}ee`
-          : "transparent",
-        backdropFilter: scrolled ? "blur(10px)" : "none",
+        backgroundColor: scrolled ? `${gradientColor || '#121212'}ee` : 'transparent',
+        backdropFilter: scrolled ? 'blur(10px)' : 'none',
       }}
     >
       <div className="flex items-center gap-2">

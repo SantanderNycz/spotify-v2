@@ -1,26 +1,25 @@
-import { useEffect, useRef } from "react";
-import Sidebar from "./components/Sidebar";
-import HomeView from "./components/HomeView";
-import SearchView from "./components/SearchView";
-import PlaylistView from "./components/PlaylistView";
-import ArtistView from "./components/ArtistView";
-import Player from "./components/Player";
-import { PlayerProvider } from "./context/PlayerContext";
-import { NavProvider, useNav } from "./context/NavContext";
+import { useEffect, useRef } from 'react';
+import Sidebar from './components/Sidebar';
+import HomeView from './components/HomeView';
+import SearchView from './components/SearchView';
+import PlaylistView from './components/PlaylistView';
+import ArtistView from './components/ArtistView';
+import Player from './components/Player';
+import { PlayerProvider } from './context/PlayerContext';
+import { NavProvider, useNav } from './context/NavContext';
 
 function PageTransition({ children, viewKey }) {
   const ref = useRef(null);
   useEffect(() => {
     if (!ref.current) return;
-    ref.current.style.opacity = "0";
-    ref.current.style.transform = "translateY(12px)";
+    ref.current.style.opacity = '0';
+    ref.current.style.transform = 'translateY(12px)';
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         if (!ref.current) return;
-        ref.current.style.transition =
-          "opacity 0.25s ease, transform 0.25s ease";
-        ref.current.style.opacity = "1";
-        ref.current.style.transform = "translateY(0)";
+        ref.current.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+        ref.current.style.opacity = '1';
+        ref.current.style.transform = 'translateY(0)';
       });
     });
   }, [viewKey]);
@@ -36,33 +35,21 @@ function MainContent() {
 
   const renderView = () => {
     switch (view) {
-      case "home":
-        return <HomeView />;
-      case "search":
-        return <SearchView />;
-      case "playlist":
-        return params.playlist ? (
-          <PlaylistView playlist={params.playlist} />
-        ) : (
-          <HomeView />
-        );
-      case "artist":
-        return params.artist ? (
-          <ArtistView artist={params.artist} />
-        ) : (
-          <HomeView />
-        );
-      default:
-        return <HomeView />;
+      case 'home':     return <HomeView />;
+      case 'search':   return <SearchView />;
+      case 'playlist': return params.playlist ? <PlaylistView playlist={params.playlist} /> : <HomeView />;
+      case 'artist':   return params.artist   ? <ArtistView   artist={params.artist}     /> : <HomeView />;
+      default:         return <HomeView />;
     }
   };
 
-  const pageKey =
-    view + (params?.playlist?.id || "") + (params?.artist?.id || "");
+  const pageKey = view + (params?.playlist?.id || '') + (params?.artist?.id || '');
 
   return (
     <main className="flex-1 rounded-lg overflow-hidden bg-[#121212] flex flex-col">
-      <PageTransition viewKey={pageKey}>{renderView()}</PageTransition>
+      <PageTransition viewKey={pageKey}>
+        {renderView()}
+      </PageTransition>
     </main>
   );
 }
