@@ -1,3 +1,4 @@
 {
-  "installCommand": "npm install --include=dev"
+  "installCommand": "npm install --legacy-peer-deps --include=dev",
+  "buildCommand": "npm run build"
 }
