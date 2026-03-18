@@ -75,7 +75,7 @@ export const artists = [
   },
   {
     id: "a10",
-    name: "Topaz",
+    name: "Tópaz",
     gradient: ["#1a3a6b", "#0a1a30"],
     followers: "1.230.000",
     genre: "Indie",
@@ -176,7 +176,7 @@ export const albums = [
   },
   {
     id: "al10",
-    name: "Topaz",
+    name: "Tópaz",
     artistId: "a10",
     year: 2021,
     gradient: ["#1a3a6b", "#0a1a30"],
