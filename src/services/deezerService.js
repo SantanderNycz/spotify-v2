@@ -11,6 +11,7 @@ async function deezerFetch(path) {
   const res = await fetch(`/deezer${path}`, {
     signal: AbortSignal.timeout(8000),
   });
+  if (res.status === 404) return null;
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -49,7 +50,7 @@ export async function fetchArtistFromDeezer(artistName) {
       artistCache.set(key, result);
       return result;
     } catch (err) {
-      console.warn(`[Deezer] Artista "${artistName}":`, err.message);
+      // Silencioso — artista não encontrado ou sem imagem na Deezer
       artistCache.set(key, null);
       return null;
     } finally {
