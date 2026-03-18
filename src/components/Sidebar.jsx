@@ -13,7 +13,7 @@ import { useNav } from "../context/NavContext";
 import GradientCover from "./GradientCover";
 
 const SpotifyLogo = () => (
-  <img src="/public/Spotify-White.png" alt="spotify logo" />
+  <img src="/Spotify-White.png" alt="spotify logo" />
 );
 
 export default function Sidebar() {
