@@ -1,4 +1,10 @@
 {
   "buildCommand": "npx vite build",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/deezer/:path*",
+      "destination": "https://api.deezer.com/:path*"
+    }
+  ]
 }
